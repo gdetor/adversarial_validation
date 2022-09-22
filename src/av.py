@@ -1,23 +1,65 @@
+# This script implements the AdversarialValidation method for exploring if
+# selected train/test data sets are of the same distribution.
+# Copyright (C) 2022 Georgios Is. Detorakis
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import numpy as np
-
-import csv
 
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import roc_auc_score
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MinMaxScaler, StandardScaler, RobustScaler
+from sklearn.preprocessing import MaxAbsScaler, Normalizer, PolynomialFeatures
 
 import xgboost as xgb
 
 
 class AdversarialValidation:
+    """! This class implements the adversarial validation AV method that
+    provides a means to test if the training/testing data sets are similar and
+    the identically distributed assumption is not being violated. The class
+    implements three methods: 1. prepareData that builds the hyper set that
+    contains the original training and testing data sets. Moreover, creates
+    the labels for the binary classification used by the AV method. 2.
+    getAUCScore estimates the AUC ROC score that determines if the two
+    (train/test) data sets are of the same distribution (i.e., the binary
+    classifier cannot classify the data correctly - AUC score <0.5). 3.
+    transformerGetAUCSCore applies some basic transforms on the original data
+    and then it estimates the AUC ROC score.
+    """
     def __init__(self,
                  n_train_examples=1000,
                  method='logreg'):
+        """! Constructor method of AdversarialValidation class.
+
+        @param n_train_examples Defines how many training samples will be used
+        (int)
+        @param method A string that determines which classification method will
+        be used: 1. logreg - logistic regression, 2. xgboost - XGBoost, 3. cv -
+        cross validation with xgboost.
+
+        @return void
+        """
         self.n_train_examples = 1000
         self.method = method
 
     def prepareData(self, X_train, X_test):
-        """!
+        """! Generates the data set for training/testing a binary classifier
+        per AV method. In addition, it creates the necessary labels 1 - for
+        training data 0 - for testing data.
+
         @param X_train Train data set (ndarray) of shape
         (n_samples, n_features)
         @param X_test Test data set (ndarray) of shape (n_samples, n_features)
@@ -28,11 +70,12 @@ class AdversarialValidation:
                     does not match!")
             exit(-1)
 
-        m = len(X_train) + len(X_test)
-        Y = np.concatenate([X_train, X_test], axis=0)
-        L = np.zeros((m, ), dtype='i')
+        m = len(X_train) + len(X_test)  # total length of data set
+        Y = np.concatenate([X_train, X_test], axis=0)   # data set
+        L = np.zeros((m, ), dtype='i')                  # labels
         L[:len(X_train)] = 1
 
+        # split train/test data sets
         tmp_data = train_test_split(Y,
                                     L,
                                     train_size=self.n_train_examples,
@@ -41,8 +84,20 @@ class AdversarialValidation:
         self.x_test, self.y_test = tmp_data[1], tmp_data[3]
 
     def getAUCScore(self, X_train, X_test):
+        """! Estimates the AUC ROC score for the binary classification problem
+        per AV method.
+
+        @param X_train The original train data set of shape (n_samples,
+        n_features)
+        @param X_test The original test data set with of shape (n_samples,
+        n_features)
+
+        @return AUC the AUC-ROC score of our binary classifier.
+        """
+        # Prepare the data sets
         self.prepareData(X_train, X_test)
 
+        # Perform a binary classification based on the chosen method
         if self.method == 'logreg':
             lr = LogisticRegression()
             lr.fit(self.x_train, self.y_train)
@@ -79,26 +134,53 @@ class AdversarialValidation:
             exit(-1)
         return AUC
 
+    def transformGetAUCScore(self,
+                             transform='MinMaxScaler',
+                             polyFeatures=False):
+        """! Estimates the AUC ROC score for the binary classification problem
+        per AV method after applying a transform on the data set.
 
-def readCSVFile(fname, delim=","):
-    with open(fname, "r") as f:
-        lines = csv.reader(f, delimiter=delim)
-        data = list(lines)
-    return np.array(data)
+        @note The available transforms are: 1. MinMaxScaler, 2. StandardScaler,
+        3. MaxAbsScaler, 4. RobustScaler, 5. L1Normalizer, 6. L2Normalizer, 7.
+        MaxNormalizer. Furthermore, this method can perform a polynomial and
+        interactions features generation.
 
+        @param transform A string that determines which transform will be
+        applied on the data set (see note above)
+        @param polyFeatures A bool tha enables/disables the polynomial and
+        interactions features generation
 
-if __name__ == '__main__':
-    import pandas as pd
+        @return AUC the AUC-ROC score of our binary classifier.
+        """
+        if transform == 'MinMaxScaler':
+            scaler = MinMaxScaler()
+        elif transform == 'StandardScaler':
+            scaler = StandardScaler()
+        elif transform == 'MaxAbsScaler':
+            scaler = MaxAbsScaler()
+        elif transform == 'RobustScaler':
+            scaler = RobustScaler()
+        elif transform == 'L1Normalizer':
+            scaler = Normalizer(norm='l1')
+        elif transform == 'L2Normalizer':
+            scaler = Normalizer(norm='l2')
+        elif transform == 'MaxNormalizer':
+            scaler = Normalizer(norm='max')
+        else:
+            print("Transform not found! Choose one of the following:")
+            print("MinMaxScaler")
+            print("StandardScaler")
+            print("RobustScaler")
+            print("L1Normalizer")
+            print("L2Normalizer")
+            print("MaxNormalizer")
+            exit(-1)
 
-    train = pd.read_csv("train.csv")
-    test = pd.read_csv("test.csv")
+        if polyFeatures:
+            scaler = Pipeline([('feats', PolynomialFeatures()),
+                               ('scaler', scaler)])
 
-    train = train.select_dtypes(include=['number']).copy()
-    train = train.drop(['Survived'], axis=1)
-    test = test.select_dtypes(include=['number']).copy()
-
-    train = np.nan_to_num(train.values, 0)
-    test = np.nan_to_num(test.values, 0)
-
-    AV = AdversarialValidation(n_train_examples=1000, method='logreg')
-    print(AV.getAUCScore(train, test))
+        x_train_t = scaler.fit_transform(self.x_train)
+        x_test_t = scaler.transform(self.x_test)
+        AUC = self.getAUCScore(x_train_t, x_test_t)
+        return AUC

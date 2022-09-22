@@ -59,8 +59,13 @@ AV = AdversarialValidation(n_train_examples=1000, method='logreg')
 # Compute the AUC score on the raw data
 print(AV.getAUCScore(train, test))
 
+# Reset AV class attributes
+AV.reset()
+
 # Transform the raw data and then compute the AUC score
-print(AV.transformGetAUCScore(transform='StandardScaler',
+print(AV.transformGetAUCScore(train,
+                              test,
+                              transform='StandardScaler',
                               polyFeatures=False))
 
 ```

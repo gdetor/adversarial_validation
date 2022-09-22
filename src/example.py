@@ -33,5 +33,8 @@ if __name__ == '__main__':
 
     AV = AdversarialValidation(n_train_examples=1000, method='logreg')
     print(AV.getAUCScore(train, test))
-    print(AV.transformGetAUCScore(transform='StandardScaler',
+    AV.reset()
+    print(AV.transformGetAUCScore(train,
+                                  test,
+                                  transform='MinMaxScaler',
                                   polyFeatures=False))

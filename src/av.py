@@ -55,6 +55,14 @@ class AdversarialValidation:
         self.n_train_examples = 1000
         self.method = method
 
+        self.reset()
+
+    def reset(self):
+        self.x_train = None
+        self.x_test = None
+        self.y_train = None
+        self.y_test = None
+
     def prepareData(self, X_train, X_test):
         """! Generates the data set for training/testing a binary classifier
         per AV method. In addition, it creates the necessary labels 1 - for
@@ -135,6 +143,8 @@ class AdversarialValidation:
         return AUC
 
     def transformGetAUCScore(self,
+                             X_train,
+                             X_test,
                              transform='MinMaxScaler',
                              polyFeatures=False):
         """! Estimates the AUC ROC score for the binary classification problem
@@ -145,6 +155,10 @@ class AdversarialValidation:
         MaxNormalizer. Furthermore, this method can perform a polynomial and
         interactions features generation.
 
+        @param X_train The original train data set of shape (n_samples,
+        n_features)
+        @param X_test The original test data set with of shape (n_samples,
+        n_features)
         @param transform A string that determines which transform will be
         applied on the data set (see note above)
         @param polyFeatures A bool tha enables/disables the polynomial and
@@ -152,6 +166,9 @@ class AdversarialValidation:
 
         @return AUC the AUC-ROC score of our binary classifier.
         """
+        # Prepare the data sets
+        self.prepareData(X_train, X_test)
+
         if transform == 'MinMaxScaler':
             scaler = MinMaxScaler()
         elif transform == 'StandardScaler':

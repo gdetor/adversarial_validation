@@ -1,4 +1,4 @@
-# adversarial_validation
+# Adversarial Validation
 
 This repository contains a simple implementation of the adversarial
 validation (AV) method.  AV is a helpful method to investigate whether

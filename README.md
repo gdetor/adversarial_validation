@@ -1,29 +1,25 @@
 # Adversarial Validation
 
-This repository contains a simple implementation of the adversarial
-validation (AV) method.  AV is a helpful method to investigate whether
-the train and test data sets come from the same distribution.
-It was originally proposed in [1] and re-implemented in [2].
+This repository contains a simple adversarial validation (AV) method implementation.
+AV is a helpful method for investigating whether the train and test data sets come
+from the same distribution. It was originally proposed in [1] and re-implemented in [2].
 
-When train and test data sets are disjoint or *almost* disjoint
-(meaning they are not similar or coming from the same distribution),
-the identically distributed data assumption is violated, and thus a
-machine learning algorithm might have serious troubles once deployed.
-This is because it will be deployed on data for the first time, so
-its performance will be inferior.  Therefore, if we need *a priori*
-that this might happen, we can take appropriate action to prevent it.
-AV method does precisely that.  It mingles the train and test data
-sets and creates one hyper set.  It annotates each sample from the
-train set with label one and any other sample with label 0.  Now, if
-a binary classifier cannot distinguish the data and thus has a <0.5
-AUC ROC score, then we know that our data sets are fine, and we can
+The identically distributed data assumption is violated when train and test data sets
+are disjoint or *almost* disjoint (meaning they are not similar or drawn from the same distribution).
+Thus a machine learning algorithm has serious troubles once deployed because it will
+be used on data that has yet to be seen, so its performance will be bad. Therefore,
+if we know *a priori* that this might happen, we can take appropriate action to prevent
+it. AV method does precisely that. It mingles the train and test data sets and creates
+one hyper set. It annotates each sample from the train set with label one (1) and any
+other sample with label zero (0). Now, if a binary classifier cannot distinguish the
+data and thus has a <0.5 AUC ROC score, we know that our data sets are fine and can
 proceed. Otherwise, we have to remedy the data.
 
 
 
 ### Brief Description
 
-In this repository we provide a class that implements the AV method. The AV class 
+In this repository we implement a Python class of the AV method. The AV class 
 provides three binary clasiffiers (logistic regression, XGBoost classfier, 
 and XGBoost cross-validation). Moreover, AV class implements seven different 
 transforms that the user can apply on the raw data. More precisely, AV comes 
